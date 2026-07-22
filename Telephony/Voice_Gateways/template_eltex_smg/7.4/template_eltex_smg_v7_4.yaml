@@ -876,8 +876,8 @@ zabbix_export:
               delay: 30s
               history: 90d
               tags:
-                - tag: Interface
                 - tag: Network
+                  value: Interface
             - uuid: 5f2680bed5394d75905e4a01a7d0ef47
               name: '{#SNMPVALUE} - In Errors'
               type: SNMP_AGENT
@@ -886,8 +886,8 @@ zabbix_export:
               delay: 30s
               history: 90d
               tags:
-                - tag: Interface
                 - tag: Network
+                  value: Interface
             - uuid: 470cb5b8d3ee4a59823b1ced91c07571
               name: '{#SNMPVALUE} - RX Bytes'
               type: SNMP_AGENT
@@ -898,8 +898,8 @@ zabbix_export:
               value_type: FLOAT
               units: Bps
               tags:
-                - tag: Interface
                 - tag: Network
+                  value: Interface
             - uuid: cb9d9978ae1341568836ce05327c2f15
               name: '{#SNMPVALUE} - operStatus'
               type: SNMP_AGENT
@@ -911,13 +911,16 @@ zabbix_export:
               valuemap:
                 name: 'Interface operstatus'
               tags:
-                - tag: Interface
                 - tag: Network
+                  value: Interface
               trigger_prototypes:
                 - uuid: fe820b808dac46f6907c2e515944c9e5
                   expression: 'last(/Eltex SMG Template v7/if.opstatus[{#SNMPINDEX}])=2'
                   name: 'Interface {{#SNMPVALUE}} down'
                   priority: AVERAGE
+                  tags:
+                    - tag: Network
+                      value: Interface
             - uuid: 7940a35434a6418ab2263cc32f237133
               name: '{#SNMPVALUE} - Out Discards'
               type: SNMP_AGENT
@@ -926,8 +929,8 @@ zabbix_export:
               delay: 30s
               history: 90d
               tags:
-                - tag: Interface
                 - tag: Network
+                  value: Interface
             - uuid: 6e0a62c0474d4eae929c7471f560b82c
               name: '{#SNMPVALUE} - Out Errors'
               type: SNMP_AGENT
@@ -936,8 +939,8 @@ zabbix_export:
               delay: 30s
               history: 90d
               tags:
-                - tag: Interface
                 - tag: Network
+                  value: Interface
             - uuid: fb9d884ddf7f4682a0be0aaf2362cc56
               name: '{#SNMPVALUE} - TX Bytes'
               type: SNMP_AGENT
@@ -948,8 +951,8 @@ zabbix_export:
               value_type: FLOAT
               units: Bps
               tags:
-                - tag: Interface
                 - tag: Network
+                  value: Interface
             - uuid: d5f1052c289b48ac966b9596c11b014e
               name: '{#SNMPVALUE} - Speed'
               type: SNMP_AGENT
@@ -960,8 +963,8 @@ zabbix_export:
               value_type: FLOAT
               units: bps
               tags:
-                - tag: Interface
                 - tag: Network
+                  value: Interface
         - uuid: 0c9945db6f1240c9a6091c1e0c38b2a6
           name: 'FrontPort LACP Discovery'
           type: SNMP_AGENT
@@ -978,8 +981,8 @@ zabbix_export:
               history: 90d
               value_type: CHAR
               tags:
-                - tag: LACP
                 - tag: Network
+                  value: LACP
             - uuid: 4b81298ecbac417da9a4e64efbcaad62
               name: 'FrontPort {#SNMPINDEX} LACP State'
               type: SNMP_AGENT
@@ -989,14 +992,15 @@ zabbix_export:
               history: 90d
               value_type: CHAR
               tags:
-                - tag: LACP
                 - tag: Network
+                  value: LACP
         - uuid: a64d2d71b2d74528b5f4bc17b31a5061
           name: 'License Discovery'
           type: SNMP_AGENT
-          snmp_oid: 'discovery[{#SNMPVALUE},1.3.6.1.4.1.35265.1.29.50.2]'
+          snmp_oid: 'discovery[{#SNMPVALUE},1.3.6.1.4.1.35265.1.29.156]'
           key: lic_discovery
           delay: 6h
+          status: DISABLED
           item_prototypes:
             - uuid: 5151465df970491bab6c1c69d3565a07
               name: 'License {#SNMPINDEX} - License Count'
@@ -1046,7 +1050,8 @@ zabbix_export:
               delay: 5m
               history: 90d
               tags:
-                - tag: TDM.MSP
+                - tag: HW
+                  value: MSP
             - uuid: 0b09f84ac35a4c52992e48e1ee62a7b6
               name: 'MSP {#SNMPINDEX} - Create Req'
               type: SNMP_AGENT
@@ -1055,7 +1060,8 @@ zabbix_export:
               delay: 5m
               history: 90d
               tags:
-                - tag: TDM.MSP
+                - tag: HW
+                  value: MSP
             - uuid: 1721d5e258724d85b20531aa0787ff0f
               name: 'MSP {#SNMPINDEX} - Destroyed'
               type: SNMP_AGENT
@@ -1064,7 +1070,8 @@ zabbix_export:
               delay: 5m
               history: 90d
               tags:
-                - tag: TDM.MSP
+                - tag: HW
+                  value: MSP
             - uuid: c4c8cb7e160f411a86ac5bd2f27a2d55
               name: 'MSP {#SNMPINDEX} - Destroy Req'
               type: SNMP_AGENT
@@ -1073,7 +1080,8 @@ zabbix_export:
               delay: 5m
               history: 90d
               tags:
-                - tag: TDM.MSP
+                - tag: HW
+                  value: MSP
             - uuid: 36802ce6a9804c1ab2850865e1600e3e
               name: 'MSP {#SNMPINDEX} - Payload'
               type: SNMP_AGENT
@@ -1082,7 +1090,8 @@ zabbix_export:
               history: 90d
               value_type: CHAR
               tags:
-                - tag: TDM.MSP
+                - tag: HW
+                  value: MSP
             - uuid: 49c75ebf7f7c4875b6d9f93c0e204c0d
               name: 'MSP {#SNMPINDEX} - State'
               type: SNMP_AGENT
@@ -1093,17 +1102,24 @@ zabbix_export:
               valuemap:
                 name: SmgMspState
               tags:
-                - tag: TDM.MSP
+                - tag: HW
+                  value: MSP
               trigger_prototypes:
                 - uuid: 1a7a63e95a1c487ba9c227c68292129e
                   expression: 'last(/Eltex SMG Template v7/smg.msp_state[{#SNMPINDEX}]) = 3'
                   name: 'MSP {{#SNMPINDEX}} failed'
                   priority: HIGH
+                  tags:
+                    - tag: HW
+                      value: MSP
                 - uuid: 7d720e1ad1eb4a4f877da211e7275f08
                   expression: 'last(/Eltex SMG Template v7/smg.msp_state[{#SNMPINDEX}]) = 0'
                   name: 'MSP {{#SNMPINDEX}} not present'
                   priority: INFO
                   manual_close: 'YES'
+                  tags:
+                    - tag: HW
+                      value: MSP
             - uuid: 20ae3de6774d4c088a5d1fc6844b0fdf
               name: 'MSP {#SNMPINDEX} - Used Conn'
               type: SNMP_AGENT
@@ -1112,7 +1128,8 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: TDM.MSP
+                - tag: HW
+                  value: MSP
         - uuid: 6754ed83609548bb8cb0dc77ada8729d
           name: 'Power Module Discovery'
           type: SNMP_AGENT
@@ -1132,12 +1149,15 @@ zabbix_export:
                 name: 'SNMP Truth Value'
               tags:
                 - tag: HW
-                - tag: Power
+                  value: Power
               trigger_prototypes:
                 - uuid: 2c6dcce416bc46ecbbe5b372590246e3
                   expression: 'last(/Eltex SMG Template v7/smg.pm_exist[{#SNMPINDEX}]) = 2'
                   name: 'PM {{#SNMPINDEX}} missing'
                   priority: WARNING
+                  tags:
+                    - tag: HW
+                      value: Power
             - uuid: b995193734284203897a1fbcdf46ab96
               name: 'PM {#SNMPINDEX} Power'
               type: SNMP_AGENT
@@ -1150,7 +1170,7 @@ zabbix_export:
                 name: 'SNMP Truth Value'
               tags:
                 - tag: HW
-                - tag: Power
+                  value: Power
         - uuid: 401b517503214a68b92b9abe51d5e353
           name: 'SIP Interface Discovery'
           type: SNMP_AGENT
@@ -1169,12 +1189,16 @@ zabbix_export:
               valuemap:
                 name: 'SNMP Truth Value'
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
               trigger_prototypes:
                 - uuid: 096d00e53fb640e299e0ef5a72532d8a
                   expression: 'last(/Eltex SMG Template v7/smg.sip_if_accessible[{#SNMPINDEX}]) = 2'
                   name: 'SIP IF {{#SNMPINDEX}} not accessible'
                   priority: WARNING
+                  tags:
+                    - tag: Telephony
+                      value: SIP
             - uuid: b1779646b8b74ea88ba12472f7165529
               name: 'SIP IF {#SNMPINDEX} - Call Count'
               type: SNMP_AGENT
@@ -1184,7 +1208,8 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
             - uuid: ac57c6ae21a84fff8528b3ad463fa263
               name: 'SIP IF {#SNMPINDEX} - Egress Calls'
               type: SNMP_AGENT
@@ -1194,7 +1219,8 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
             - uuid: b5b4f31b2caf407f8cac2de338c47e4e
               name: 'SIP IF {#SNMPINDEX} - Ingress Calls'
               type: SNMP_AGENT
@@ -1204,7 +1230,8 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
             - uuid: 4dfc309a3f8f4ac68a9c06b72c7bd6fc
               name: 'SIP IF {#SNMPINDEX} - Max Calls'
               type: SNMP_AGENT
@@ -1214,7 +1241,8 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
             - uuid: 5cb98aa858bd45a4963c8dc8bcf212fc
               name: 'SIP IF {#SNMPINDEX} - Mode'
               type: SNMP_AGENT
@@ -1226,7 +1254,8 @@ zabbix_export:
               valuemap:
                 name: 'SIP Interface Mode'
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
             - uuid: 8fb54232cbc744f1891533bc9a500738
               name: 'SIP IF {#SNMPINDEX} - Name'
               type: SNMP_AGENT
@@ -1236,7 +1265,8 @@ zabbix_export:
               history: 90d
               value_type: CHAR
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
         - uuid: 74b596fcc76c49cb81e792475ea17668
           name: 'Trunk Monitor Discovery'
           type: SNMP_AGENT
@@ -1253,7 +1283,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: 243ba1736c9844aca10278985b042bd2
               name: 'Trunk {#SNMPINDEX} - Capacity'
               type: SNMP_AGENT
@@ -1263,7 +1296,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: 8c9e9c9125444042a7347d950bb05dca
               name: 'Trunk {#SNMPINDEX} - CPS'
               type: SNMP_AGENT
@@ -1273,7 +1309,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: f096e4d186b646fd971343b25e249c34
               name: 'Trunk {#SNMPINDEX} - Egress Calls'
               type: SNMP_AGENT
@@ -1283,7 +1322,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: bda935850b9245cfa74936e115cf8c8c
               name: 'Trunk {#SNMPINDEX} - Enable'
               type: SNMP_AGENT
@@ -1293,7 +1335,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: 53ee896279f2485e95af86bfd6ca1bb1
               name: 'Trunk {#SNMPINDEX} - Free Ch'
               type: SNMP_AGENT
@@ -1303,7 +1348,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: f6be7ad29575406f9204c0f6c83bbed7
               name: 'Trunk {#SNMPINDEX} - Ingress Calls'
               type: SNMP_AGENT
@@ -1313,7 +1361,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: 1b9aadae9b05486ab90f7942993f725d
               name: 'Trunk {#SNMPINDEX} - Name'
               type: SNMP_AGENT
@@ -1323,7 +1374,10 @@ zabbix_export:
               history: 90d
               value_type: CHAR
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: f40a3bad2fbf40afa2eac4464d5d588d
               name: 'Trunk {#SNMPINDEX} - Status'
               type: SNMP_AGENT
@@ -1333,7 +1387,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
             - uuid: 62d0711155e44ac1ae5ca1948b7ca3a0
               name: 'Trunk {#SNMPINDEX} - Total Calls'
               type: SNMP_AGENT
@@ -1343,7 +1400,10 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
+                - tag: Telephony
+                  value: TDM
         - uuid: 920be118579f4ac4aba8ca0ac34bf707
           name: 'VoIP Channel Discovery'
           type: SNMP_AGENT
@@ -1360,7 +1420,8 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
             - uuid: 1c81825e991c4994a7e9b717e8d81b03
               name: 'VoIP {#SNMPINDEX} Free Ch'
               type: SNMP_AGENT
@@ -1370,7 +1431,8 @@ zabbix_export:
               history: 90d
               value_type: FLOAT
               tags:
-                - tag: Telephony.SIP
+                - tag: Telephony
+                  value: SIP
       valuemaps:
         - uuid: c67fb86e6e9d43ec96996a1d2df21c97
           name: 'E1 Alarm State'
