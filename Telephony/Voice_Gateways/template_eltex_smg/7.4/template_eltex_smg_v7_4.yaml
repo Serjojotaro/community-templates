@@ -5,7 +5,7 @@ zabbix_export:
       name: eltex
     - uuid: 8241fd3633554492a35d212bc8b2f791
       name: 'Eltex SMG'
-    - uuid: c8277844e4684915af7b55ddcf1f00e5
+    - uuid: 7df96b18c230490a9a0a9e2307226338
       name: Templates
   templates:
     - uuid: 98da48e9604f47ba80521e5c02863548
@@ -237,7 +237,7 @@ zabbix_export:
             - tag: HW
               value: Disk
         - uuid: 38194db01c874c789ba5f987c88ac680
-          name: 'Firmware Version'
+          name: 'Firmware Version - Version'
           type: SNMP_AGENT
           snmp_oid: 1.3.6.1.4.1.35265.1.29.3.0
           key: smg.fw_version
@@ -245,14 +245,69 @@ zabbix_export:
           history: 90d
           value_type: CHAR
           description: 'Firmware version'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var parts = value.split(' ');
+                  // Если первый элемент начинается с ECSS, берём второй, иначе первый
+                  var versionIndex = parts[0].indexOf('ECSS') === 0 ? 1 : 0;
+                  return parts[versionIndex] || '';
           tags:
             - tag: Device
+              value: Version
           triggers:
             - uuid: 7ae5770c26d941af829fa147e19277c7
               expression: 'change(/Eltex SMG Template v7/smg.fw_version)=1'
               name: 'Firmware version changed'
               priority: INFO
               manual_close: 'YES'
+        - uuid: 0f46f318837f4b99ac97ea3fa320e3c1
+          name: 'Firmware Version - Build'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.35265.1.29.3.0
+          key: smg.fw_version_build
+          delay: 6h
+          history: 90d
+          value_type: CHAR
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var match = value.match(/Build:\s*.+$/);
+                  return match ? match[0].trim() : '';
+          tags:
+            - tag: Device
+              value: Build
+        - uuid: 6c316ef4369143fb83d508955b3e050b
+          name: 'Firmware Version - Licenses'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.35265.1.29.3.0
+          key: smg.fw_version_licenses
+          delay: 6h
+          history: 90d
+          value_type: CHAR
+          description: Licenses
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  // 1. Отрезаем Build и всё после него
+                  var s = value.replace(/\s*Build:.*$/, '').trim();
+                  
+                  // 2. Убираем ECSS-10 (если есть)
+                  s = s.replace(/^ECSS-?\d*\s+/, '');
+                  
+                  // 3. Убираем версию V.x.x.x.x
+                  s = s.replace(/^V\.\d+(?:\.\d+)+\s+/, '');
+                  
+                  // 4. Убираем ведущий префикс: либо "M/", либо "200/", "3016/" и т.п.
+                  s = s.replace(/^(?:[A-Za-z]|\d+)\//, '');
+                  
+                  return s.trim();
+          tags:
+            - tag: Device
+              value: License
         - uuid: 1031d5427a29453eb49261479c3102c6
           name: 'HW Revision'
           type: SNMP_AGENT
@@ -379,7 +434,7 @@ zabbix_export:
           snmp_oid: 1.3.6.1.4.1.35265.1.29.38.1.0
           key: smg.sip_active
           history: 90d
-          value_type: FLOAT
+          value_type: TEXT
           tags:
             - tag: Telephony
               value: SIP
@@ -421,8 +476,11 @@ zabbix_export:
           type: SNMP_AGENT
           snmp_oid: 1.3.6.1.4.1.35265.1.29.35.1.0
           key: 'smg.temp[1]'
+          delay: 30s
           history: 90d
-          value_type: CHAR
+          value_type: FLOAT
+          trends: '0'
+          units: C
           description: 'DisplayString, parse with regex'
           tags:
             - tag: HW
@@ -432,8 +490,11 @@ zabbix_export:
           type: SNMP_AGENT
           snmp_oid: 1.3.6.1.4.1.35265.1.29.35.2.0
           key: 'smg.temp[2]'
+          delay: 30s
           history: 90d
-          value_type: CHAR
+          value_type: FLOAT
+          trends: '0'
+          units: C
           description: 'DisplayString, parse with regex'
           tags:
             - tag: HW
@@ -462,6 +523,365 @@ zabbix_export:
           tags:
             - tag: HW
               value: RAM
+        - uuid: 129141d993d54c9281e4591e303ed7d0
+          name: 'Configuration alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["Configuration"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: b720a6d68912405daa07070a60a894bb
+              expression: 'find(/Eltex SMG Template v7/snmptrap["Configuration"],,"like","Configuration failure")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["Configuration"],,"like","Configuration in norm")=1'
+              name: 'Configuration alarm'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: 5534b70d345b449a9892cbfdd7daa03d
+          name: 'CPU Temp Alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["CPU"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 878f467ace794a8281b6e20c7ba1fe9b
+              expression: 'find(/Eltex SMG Template v7/snmptrap["CPU"],,"regexp","CPU overheating more than 70C. .* on CPU, .* on RAM")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["CPU"],,"like","CPU temperature in norm")=1'
+              name: 'CPU 70C'
+              priority: WARNING
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: 360b166c12b744919eee51ce3c40f775
+              expression: 'find(/Eltex SMG Template v7/snmptrap["CPU"],,"regexp","CPU overheating more than 85C. .* on CPU, .* on RAM")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["CPU"],,"like","CPU temperature in norm")=1'
+              name: 'CPU 85C'
+              priority: AVERAGE
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: 136a2152a26845108acf70a0715da5fe
+              expression: 'find(/Eltex SMG Template v7/snmptrap["CPU"],,"regexp","CPU overheating more than 100C. .* on CPU, .* on RAM")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["CPU"],,"like","CPU temperature in norm")=1'
+              name: 'CPU 100C'
+              priority: DISASTER
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: 070fc7ed201045bd8c2b486da780e6fa
+          name: CDR-file
+          type: SNMP_TRAP
+          key: 'snmptrap["Failed to create operational CDR-file"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+        - uuid: 5f3cd91fe4dd486ca41ede34844fc170
+          name: 'IP-NET interface number'
+          type: SNMP_TRAP
+          key: 'snmptrap["IP-NET interface"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 047792a09b2945dbb6bd2f1c47820685
+              expression: 'find(/Eltex SMG Template v7/snmptrap["IP-NET interface"],,"regexp","IP-NET interface .* access alarm")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["IP-NET interface"],,"regexp","IP-NET interface .* access in norm")=1'
+              name: 'IP-NET interface number'
+              priority: AVERAGE
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: 7cae774194a84c10aa583b6f4303e454
+          name: 'LinkSet alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["LinkSet"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: da4469db48154b7d9ff050f246db1f82
+              expression: 'find(/Eltex SMG Template v7/snmptrap["LinkSet"],,"regexp","LinkSet.*alarm")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["LinkSet"],,"regexp","LinkSet.*in norm")=1'
+              name: 'LinkSet alarm'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: bdc506e747aa4653b8c083b2ec0caa58
+          name: 'Memory alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["Memory"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 4f8971f7e27c446ea62d1d3e4e09cbbe
+              expression: 'find(/Eltex SMG Template v7/snmptrap["Memory"],,"regexp","Memory 75% busy (free .* of .* Mb)")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["Memory"],,"like","Memory in norm (less than 75% busy)")=1'
+              name: 'Memory 75%'
+              priority: WARNING
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: 487d31b3db174a5281b977f4f04bf901
+              expression: 'find(/Eltex SMG Template v7/snmptrap["Memory"],,"regexp","Memory 90% busy (free .* of .* Mb)")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["Memory"],,"like","Memory in norm (less than 75% busy)")=1'
+              name: 'Memory 90%'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: 6646b22409724c54ae476fc88438a3ab
+              expression: 'find(/Eltex SMG Template v7/snmptrap["Memory"],,"regexp","Memory 95% busy (free .* of .* Mb)")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["Memory"],,"like","Memory in norm (less than 75% busy)")=1'
+              name: 'Memory 95%'
+              priority: DISASTER
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: f91bb337572e46359219111574904127
+          name: 'Processor alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["Processor"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 17c5800fb36c4a8d8bed3b3c75fdec30
+              expression: 'find(/Eltex SMG Template v7/snmptrap["Processor"],,"regexp","Processor .* overload 90%")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["Processor"],,"like","Processor load in norm")=1'
+              name: 'Processor 90%'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: 46b3f837fa8d46cbb4df55dba2123e38
+              expression: 'find(/Eltex SMG Template v7/snmptrap["Processor"],,"regexp","Processor .* overload 95%")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["Processor"],,"like","Processor load in norm")=1'
+              name: 'Processor 95%'
+              priority: DISASTER
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: 9784d99549f94fdf84a5ee9abafec80d
+          name: 'SIP interface number'
+          type: SNMP_TRAP
+          key: 'snmptrap["SIP interface"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 933c4b0e669e416d8d83a204c4ebc251
+              expression: 'find(/Eltex SMG Template v7/snmptrap["SIP interface"],,"regexp","SIP interface .* access alarm")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["SIP interface"],,"regexp","SIP interface .* access in norm")=1'
+              name: 'SIP interface number'
+              priority: AVERAGE
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: b2b995d869ed43b49923aa14368cfc10
+          name: 'SIP OPTIONS queue'
+          type: SNMP_TRAP
+          key: 'snmptrap["SIP OPTIONS queue"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 8ec303fa1bf5407f8b16355b2f541b60
+              expression: 'find(/Eltex SMG Template v7/snmptrap["SIP OPTIONS queue"],,"like","SIP OPTIONS queue overload")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["SIP OPTIONS queue"],,"like","SIP OPTIONS queue in norm")=1'
+              name: 'SIP OPTIONS queue overload'
+              priority: WARNING
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: 4ee5b31216cc4c378a7e927a2f91ec10
+          name: 'SIPT Module Alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["SIPT-module"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: a0d4a856e5814de79a537d3c3323974b
+              expression: 'find(/Eltex SMG Template v7/snmptrap["SIPT-module"],,"like","SIPT-module alarm")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["SIPT-module"],,"like","SIPT-module in norm")=1'
+              name: 'SIPT Module Alarm'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: 11acb8c654e744bfae7388105fef4fc2
+          name: 'SM-VP device alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["SM-VP device"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 6c30604304c9490889f7d10c5a8b3bfb
+              expression: 'find(/Eltex SMG Template v7/snmptrap["SM-VP device"],,"regexp","SM-VP device.*alarm")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["SM-VP device"],,"regexp","SM-VP device.*in norm")=1'
+              name: 'SM-VP device alarm'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: 68bc59de0ba2494eb5b1116640126451
+          name: 'SS7-Link alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["SS7-Link"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: d8d8116e79e6410d88b27fec2b060654
+              expression: 'find(/Eltex SMG Template v7/snmptrap["SS7-Link"],,"regexp","SS7-Link alarm (LinkSet .*, E1 stream.*)")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["SS7-Link"],,"regexp","SS7-Link in norm (LinkSet .*, E1 stream.*)")=1'
+              name: 'SS7-Link alarm'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: cf30400c5c9f4a22bd2ec809869dc404
+          name: 'Stream alarm'
+          type: SNMP_TRAP
+          key: 'snmptrap["Stream"]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 3d91f734692b41e297f03b1c326bd7c1
+              expression: 'find(/Eltex SMG Template v7/snmptrap["Stream"],,"regexp","Stream.*signal loss")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["Stream"],,"regexp","Stream.*in norm")=1'
+              name: 'Stream loss'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: deb88a08f4a145acad2756c54b01a196
+              expression: 'find(/Eltex SMG Template v7/snmptrap["Stream"],,"regexp","Stream.*remote alarm")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap["Stream"],,"regexp","Stream.*in norm")=1'
+              name: 'Stream remote alarm'
+              priority: WARNING
+              tags:
+                - tag: SNMP
+                  value: trap
+        - uuid: f650fc71aa1e4ccb956c370a71088964
+          name: 'Other alarms'
+          type: SNMP_TRAP
+          key: 'snmptrap[]'
+          value_type: LOG
+          tags:
+            - tag: SNMP
+              value: trap
+          triggers:
+            - uuid: 9bc76a7ae5df4336a78c734987bc1920
+              expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","No connection with upload server, local CDR-data is less than 5 Mb")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Upload server connection in norm")=1'
+              name: 'CDR-data less 5'
+              priority: WARNING
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: 388050cb90fe4dfcab91813a94af78ae
+              expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","No connection with upload server, local CDR-data is more than 5 Mb and less than 15 Mb")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Upload server connection in norm")=1'
+              name: 'CDR-data less 15'
+              priority: AVERAGE
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: ae0ead4290e446449052f72bf8d61662
+              expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","No connection with upload server, local CDR-data is more than 15 Mb")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Upload server connection in norm")=1'
+              name: 'CDR-data more 15'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: d7f922df6c7641099eae542c41c6beda
+              expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","No connection with H323 adapter")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Connection with H323 adapter in norm")=1'
+              name: 'H323 adapter alarm'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: d59acc94bee0494494f92b3b8c919a38
+              expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Less priority synchronization alarm")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Synchronization in norm")=1'
+              name: 'Less priority synchronization'
+              priority: WARNING
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: 31e9c4d7903544369b6e66f8502ef5a5
+              expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Local synchronization alarm")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Synchronization in norm")=1'
+              name: 'Local synchronization'
+              priority: HIGH
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: b2a954bd2a2e459ba0f22ba18ca00d1a
+              expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","No fans operated")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"regexp","All .* fans operated")=1'
+              name: 'No fans'
+              priority: WARNING
+              tags:
+                - tag: SNMP
+                  value: trap
+            - uuid: a7cd4ae98fd64a2d9136d4613e467c3d
+              expression: 'find(/Eltex SMG Template v7/snmptrap[],,"regexp","Only .* of .* fans operated")=1'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"regexp","All .* fans operated")=1'
+              name: 'Only 1 fan'
+              priority: WARNING
+              tags:
+                - tag: SNMP
+                  value: trap
       discovery_rules:
         - uuid: 4535fdbd5b1f4e2f934de8f288cb8dfc
           name: 'CPU Discovery'
@@ -915,7 +1335,7 @@ zabbix_export:
                   value: Interface
               trigger_prototypes:
                 - uuid: fe820b808dac46f6907c2e515944c9e5
-                  expression: 'last(/Eltex SMG Template v7/if.opstatus[{#SNMPINDEX}])=2'
+                  expression: 'last(/Eltex SMG Template v7/if.opstatus[{#SNMPINDEX}],#2)=0 and last(/Eltex SMG Template v7/if.opstatus[{#SNMPINDEX}])<>0'
                   name: 'Interface {{#SNMPVALUE}} down'
                   priority: AVERAGE
                   tags:
@@ -1510,6 +1930,34 @@ zabbix_export:
               newvalue: 'Yes'
             - value: '2'
               newvalue: 'No'
+  triggers:
+    - uuid: c0d1c8fc92c1431ab2f459ecf06b1d5b
+      expression: 'find(/Eltex SMG Template v7/snmptrap["Failed to create operational CDR-file"],,"like","Failed to create operational CDR-file on disk")=1'
+      recovery_mode: RECOVERY_EXPRESSION
+      recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Operational CDR-file is OK")=1'
+      name: 'CDR-file disk failed'
+      priority: WARNING
+      tags:
+        - tag: SNMP
+          value: trap
+    - uuid: 248960761b6e4cc6b90c0ec332921f33
+      expression: 'find(/Eltex SMG Template v7/snmptrap["Failed to create operational CDR-file"],,"like","Failed to create operational CDR-file")=1'
+      recovery_mode: RECOVERY_EXPRESSION
+      recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Operational CDR-file is OK")=1'
+      name: 'CDR-file failed'
+      priority: AVERAGE
+      tags:
+        - tag: SNMP
+          value: trap
+    - uuid: a5532f0c186844cd90c6f6b69beb22fc
+      expression: 'find(/Eltex SMG Template v7/snmptrap["Failed to create operational CDR-file"],,"like","Failed to create operational CDR-file in RAM")=1'
+      recovery_mode: RECOVERY_EXPRESSION
+      recovery_expression: 'find(/Eltex SMG Template v7/snmptrap[],,"like","Operational CDR-file is OK")=1'
+      name: 'CDR-file RAM failed'
+      priority: HIGH
+      tags:
+        - tag: SNMP
+          value: trap
   graphs:
     - uuid: b58f4864eb374ef893619f6917dc46b1
       name: 'Active call count'
@@ -1556,3 +2004,18 @@ zabbix_export:
           item:
             host: 'Eltex SMG Template v7'
             key: smg.reg_count
+    - uuid: 4ef62beca6154b6bb591877155a44beb
+      name: SMG_TEMP
+      yaxismax: '0'
+      graph_items:
+        - color: 1A7C11
+          calc_fnc: ALL
+          item:
+            host: 'Eltex SMG Template v7'
+            key: 'smg.temp[1]'
+        - sortorder: '1'
+          color: FF0000
+          calc_fnc: ALL
+          item:
+            host: 'Eltex SMG Template v7'
+            key: 'smg.temp[2]'
